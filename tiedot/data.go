@@ -1,43 +1,44 @@
-package data
+package tiedot
 
 import (
+	"log"
+
 	"github.com/HouzuoGuo/tiedot/db"
 )
 
-func NewDatabaseConnection(rootPath string) (database *db.DB) {
-	dir := rootPath + "/data"
-	database, err := db.OpenDB(dir)
-	if err != nil {
-		panic(err)
+func NewDatabaseConnection(rootPath string, colName string, indexs []string) (database *db.DB) {
+	database, err := db.OpenDB(rootPath)
+	if err == nil {
+		go initDatabase(database, colName, indexs)
+	} else {
+		log.Println(err)
 	}
-
-	initDatabase(database)
 
 	return
 }
 
-func initDatabase(database *db.DB) {
-	col := database.Use("Settings")
+func initDatabase(database *db.DB, colName string, indexs []string) {
+	col := database.Use(colName)
 	if col == nil {
-		err := database.Create("Settings")
-		if err != nil {
-			panic(err)
+		err := database.Create(colName)
+		if err == nil {
+			Indexs(database, colName, indexs)
+		} else {
+			log.Println(err)
 		}
-	}
-
-	col = database.Use("Scripts")
-	if col == nil {
-		err := database.Create("Scripts")
-		if err != nil {
-			panic(err)
+	} else {
+		if len(col.AllIndexes()) != len(indexs) {
+			Indexs(database, colName, indexs)
 		}
-	}
 
-	col = database.Use("Webhooks")
-	if col == nil {
-		err := database.Create("Webhooks")
-		if err != nil {
-			panic(err)
+	}
+}
+
+func Indexs(database *db.DB, colName string, indexs []string) {
+	col := database.Use(colName)
+	if col != nil {
+		for _, v := range indexs {
+			go col.Index([]string{v})
 		}
 	}
 }
