@@ -1,8 +1,8 @@
-package data
+package tiedot
 
 import (
 	"encoding/json"
-	"fmt"
+	"log"
 
 	"github.com/HouzuoGuo/tiedot/db"
 )
@@ -19,7 +19,7 @@ func NewGenericRepository(database *db.DB, coll string) *GenericRepository {
 	if col == nil {
 		err := database.Create(coll)
 		if err != nil {
-			panic(err)
+			log.Println(err)
 		}
 
 		col = database.Use(coll)
@@ -61,7 +61,7 @@ func (repo *GenericRepository) Fetch(id int) GenericModel {
 
 	rawGeneric, err := col.Read(id)
 	if err != nil {
-		panic(err)
+		log.Println(err)
 	}
 	generic := hydrateGeneric(rawGeneric)
 	generic["ID"] = id
@@ -77,13 +77,13 @@ func (repo *GenericRepository) Save(generic GenericModel) {
 		id, err := col.Insert(data)
 		generic["ID"] = id
 		if err != nil {
-			fmt.Println("An error occurred while inserting the model: ", err)
+			log.Println("An error occurred while inserting the model: ", err)
 		}
 
 	} else {
 		err := col.Update(generic["ID"].(int), data)
 		if err != nil {
-			fmt.Println("An error occurred while updating the model: ", err)
+			log.Println("An error occurred while updating the model: ", err)
 		}
 	}
 }
@@ -92,7 +92,7 @@ func (repo *GenericRepository) Query(query interface{}) []GenericModel {
 	col := repo.database.Use(repo.coll)
 	result := make(map[int]struct{})
 	if err := db.EvalQuery(query, col, &result); err != nil {
-		panic(err)
+		log.Println(err)
 	}
 
 	generics := make([]GenericModel, 0)
@@ -105,8 +105,11 @@ func (repo *GenericRepository) Query(query interface{}) []GenericModel {
 
 func (repo *GenericRepository) Index(cols []string) {
 	col := repo.database.Use(repo.coll)
-	if err := col.Index(cols); err != nil {
-		panic(err)
+	for _, v := range cols {
+
+		if err := col.Index([]string{v}); err != nil {
+			log.Println(err)
+		}
 	}
 }
 
